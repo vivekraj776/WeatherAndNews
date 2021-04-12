@@ -1,8 +1,19 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('./../middleware/authenticate.js');
 const {userModel} = require('../models/user');
+const redis = require('redis');
+const {promisify} = require('util');
+
+const client = redis.createClient({
+    host: process.env.HOST,
+    port: process.env.PORT
+})
+
+const READ_SYS = promisify(client.get).bind(client);
+const WRITE_SYS = promisify(client.set).bind(client);
 
 router.post('/signup',(request,response)=>{
     const { name, password, email } = request.body;
@@ -24,14 +35,15 @@ router.post('/signup',(request,response)=>{
 });
 
 
-router.post('/login', (request, response) => {
+router.post('/login', async (request, response) => {
         const { password, email } = request.body;
-        userModel.findByCredentials(email, password).then((user) => {
+        userModel.findByCredentials(email, password).then(async (user) => {
             if (!user) {                                                                    
                 return response.status(400).send('No Such User Found');
             }
-            console.log(user);
-            user.generateAuthToken().then(() => {                                      
+            user.generateAuthToken().then(async (result) => {   
+                console.log(result);            
+                const newResult = await WRITE_SYS(result, JSON.stringify(user), 'EX', 3000);                       
                 response.status(200).send('You are successfully logged in!');
             });
         }).catch(() => {

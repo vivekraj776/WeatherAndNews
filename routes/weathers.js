@@ -1,16 +1,31 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 const express = require('express');
 const router = express.Router();
 const helpers = require('../utils/helperFunction');
 let request = require('request');
+const redis = require('redis');
+const {promisify} = require('util');
+
+const client = redis.createClient({
+    host: process.env.HOST,
+    port: process.env.PORT
+})
+
+const READ_SYS = promisify(client.get).bind(client);
+const WRITE_SYS = promisify(client.set).bind(client);
 
 router.get('/report', async (req, res) => {
     try {
         let apiKey = process.env.APP_ID;
         let city = req.query.location;
         let url = `http://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}`
-
-        await request(url, function (err, response, body) {
+        const reply = await READ_SYS('weather');
+        if(reply){
+            console.log(reply);
+            return res.status(200).send(JSON.parse(reply));
+        }
+        await request(url, async function (err, response, body) {
             if (err) {
                 res.status(400).send('Error while fetching weather', err);
             } else {
@@ -29,11 +44,12 @@ router.get('/report', async (req, res) => {
                     count: newResult.cnt,
                     data
                 }
-                res.status(200).send(finalResult);
+                const saveResult = await WRITE_SYS('weather', JSON.stringify(finalResult), 'EX', 50);
+                return res.status(200).send(finalResult);
             }
         });
     } catch (error) {
-        res.status(400).send('Error while fetching news', error);
+        return res.status(400).send('Error while fetching news', error);
     }
 })
 

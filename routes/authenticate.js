@@ -9,7 +9,7 @@ const {promisify} = require('util');
 
 const client = redis.createClient({
     host: process.env.HOST,
-    port: process.env.PORT
+    port: process.env.REDIS_PORT
 })
 
 const READ_SYS = promisify(client.get).bind(client);
@@ -41,10 +41,13 @@ router.post('/login', async (request, response) => {
             if (!user) {                                                                    
                 return response.status(400).send('No Such User Found');
             }
-            user.generateAuthToken().then(async (result) => {   
-                console.log(result);            
-                const newResult = await WRITE_SYS(result, JSON.stringify(user), 'EX', 3000);                       
-                response.status(200).send('You are successfully logged in!');
+            user.generateAuthToken().then(async (result) => {              
+                const newResult = await WRITE_SYS(result, JSON.stringify(user), 'EX', 3000);
+                const newResponse = {
+                    message: 'You are succesfully logged In',
+                    token: result
+                };
+                return response.status(200).send(newResponse);
             });
         }).catch(() => {
             response.status(400).send('Error Logging in!');

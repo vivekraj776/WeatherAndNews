@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -21,25 +22,21 @@ var userSchema = new mongoose.Schema({
         unique:true,
         trim:true
     },
-    tokens:[{
-        access:{
-            type:String,
-            required:true
-        },
-        token:{
-            type:String,
-            required:true
-        }
-    }]
+    token: {
+        type: String
+    }
 });
 
 userSchema.methods.generateAuthToken = function (){
     var user = this;
-    var access = 'auth';
-    var token = jwt.sign({_id:user._id.toHexString(),access},'abc123').toString();
-    user.tokens.push({access,token});
+    let payload = {_id: user._id};
+    //create the access token with the shorter lifespan
+    let accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_LIFE })
+    //create the refresh token with the longer lifespan
+    let refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_LIFE })
+    user.token = refreshToken;
     return user.save().then(()=>{
-        return token;
+        return accessToken;
     });
 };
 

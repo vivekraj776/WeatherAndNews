@@ -9,7 +9,7 @@ const {promisify} = require('util');
 
 const client = redis.createClient({
     host: process.env.HOST,
-    port: process.env.PORT
+    port: process.env.REDIS_PORT
 })
 
 const READ_SYS = promisify(client.get).bind(client);

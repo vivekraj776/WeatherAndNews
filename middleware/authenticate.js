@@ -28,9 +28,7 @@ const authenticate = async (request, response, next) => {
         let userID;
         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
             if (err) {
-                user.generateAuthToken().then(async (result) => {
-                    return response.cookie(result);
-                });
+                console.log(err, "--------");
             }
             userID = decoded;
         });
@@ -44,7 +42,7 @@ const authenticate = async (request, response, next) => {
         }).catch(() => {
             return response.status(401).send('User may not be registered or check x-auth token');
         });
-        }
-    };
+    }
+};
 
-    module.exports = { authenticate }; 
+module.exports = { authenticate };
